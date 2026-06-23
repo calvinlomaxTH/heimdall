@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Heimdall Healthcare Threat Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-label="Dashboard controls">
+        <div>
+          <p class="eyebrow">Heimdall</p>
+          <h1>Healthcare Threat Dashboard</h1>
+          <p class="subtitle">News intelligence and business impact scoring for Thirs Horizon Strategies.</p>
+        </div>
+        <div class="actions">
+          <label class="filter">
+            <span>Minimum score</span>
+            <select id="scoreFilter">
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3" selected>3+</option>
+              <option value="4">4+</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+          <button id="refreshButton" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Threat summary">
+        <div class="metric">
+          <span class="metric-label">Tracked Headlines</span>
+          <strong id="articleCount">0</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">High Threats</span>
+          <strong id="highThreatCount">0</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Refresh Cadence</span>
+          <strong id="refreshCadence">--</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Last Updated</span>
+          <strong id="lastUpdated">--</strong>
+        </div>
+      </section>
+
+      <section class="content">
+        <aside class="panel">
+          <h2>Business Exposure</h2>
+          <div id="areaList" class="area-list"></div>
+        </aside>
+
+        <section class="feed" aria-live="polite">
+          <div class="feed-header">
+            <h2>Threat Feed</h2>
+            <p id="statusText">Loading dashboard...</p>
+          </div>
+          <div id="threatFeed" class="threat-feed"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
