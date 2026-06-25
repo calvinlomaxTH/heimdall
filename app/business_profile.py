@@ -10,7 +10,7 @@ class BusinessArea:
     keywords: tuple[str, ...]
 
 
-COMPANY_NAME = "Thirs Horizon Strategies"
+COMPANY_NAME = "Third Horizon"
 
 BUSINESS_AREAS: tuple[BusinessArea, ...] = (
     BusinessArea(

@@ -12,46 +12,110 @@
         <div>
           <p class="eyebrow">Heimdall</p>
           <h1>Healthcare Threat Dashboard</h1>
-          <p class="subtitle">News intelligence and business impact scoring for Thirs Horizon Strategies.</p>
+          <p class="subtitle">Industry news intelligence and business impact scoring for Third Horizon.</p>
         </div>
         <div class="actions">
-          <label class="filter">
-            <span>Minimum score</span>
-            <select id="scoreFilter">
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3" selected>3+</option>
-              <option value="4">4+</option>
-              <option value="5">5</option>
-            </select>
-          </label>
           <button id="refreshButton" type="button">Refresh</button>
         </div>
       </section>
 
       <section class="metrics" aria-label="Threat summary">
         <div class="metric">
-          <span class="metric-label">Tracked Headlines</span>
+          <span class="metric-label">Total Articles</span>
           <strong id="articleCount">0</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Reviewed Today</span>
+          <strong id="reviewedToday">0</strong>
         </div>
         <div class="metric">
           <span class="metric-label">High Threats</span>
           <strong id="highThreatCount">0</strong>
         </div>
         <div class="metric">
+          <span class="metric-label">Average Score</span>
+          <strong id="averageScore">0</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Most Affected Area</span>
+          <strong id="topArea">--</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Most Active Ticker</span>
+          <strong id="topTicker">--</strong>
+        </div>
+        <div class="metric">
           <span class="metric-label">Refresh Cadence</span>
           <strong id="refreshCadence">--</strong>
         </div>
         <div class="metric">
-          <span class="metric-label">Last Updated</span>
+          <span class="metric-label">Next Refresh</span>
+          <strong id="nextRefresh">--</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Last Success</span>
           <strong id="lastUpdated">--</strong>
         </div>
+      </section>
+
+      <section class="filters" aria-label="Article filters">
+        <label>
+          <span>Search</span>
+          <input id="searchFilter" type="search" placeholder="Headline, source, rationale" />
+        </label>
+        <label>
+          <span>Ticker</span>
+          <select id="tickerFilter"></select>
+        </label>
+        <label>
+          <span>Minimum score</span>
+          <select id="scoreFilter">
+            <option value="">Any</option>
+            <option value="1">1+</option>
+            <option value="2">2+</option>
+            <option value="3" selected>3+</option>
+            <option value="4">4+</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <label>
+          <span>Business area</span>
+          <select id="areaFilter"></select>
+        </label>
+        <label>
+          <span>Source</span>
+          <select id="sourceFilter"></select>
+        </label>
+        <label>
+          <span>From</span>
+          <input id="dateFromFilter" type="date" />
+        </label>
+        <label>
+          <span>To</span>
+          <input id="dateToFilter" type="date" />
+        </label>
+        <label>
+          <span>Sort</span>
+          <select id="sortFilter">
+            <option value="highest">Highest threat</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="ticker">Ticker</option>
+            <option value="publisher">Publisher</option>
+          </select>
+        </label>
       </section>
 
       <section class="content">
         <aside class="panel">
           <h2>Business Exposure</h2>
           <div id="areaList" class="area-list"></div>
+
+          <h2>Threat Trend</h2>
+          <div id="trendList" class="area-list"></div>
+
+          <h2>Refresh History</h2>
+          <div id="refreshHistory" class="area-list"></div>
         </aside>
 
         <section class="feed" aria-live="polite">
@@ -59,9 +123,49 @@
             <h2>Threat Feed</h2>
             <p id="statusText">Loading dashboard...</p>
           </div>
+          <section class="priority-strip" aria-label="High priority threats">
+            <h2>High Priority</h2>
+            <div id="highPriority" class="compact-list"></div>
+          </section>
+          <section class="priority-strip" aria-label="Recently added articles">
+            <h2>Recently Added</h2>
+            <div id="recentlyAdded" class="compact-list"></div>
+          </section>
           <div id="threatFeed" class="threat-feed"></div>
         </section>
       </section>
+
+      <section class="management">
+        <div class="panel">
+          <h2>Tracked Tickers</h2>
+          <form id="tickerForm" class="inline-form">
+            <input id="tickerInput" aria-label="Ticker symbol" placeholder="Add ticker" />
+            <button type="submit">Add</button>
+          </form>
+          <div id="tickerList" class="ticker-list"></div>
+        </div>
+        <div class="panel">
+          <h2>Configuration</h2>
+          <form id="configForm" class="config-form">
+            <label>
+              <span>Refresh minutes</span>
+              <input id="refreshMinutesInput" type="number" min="5" max="1440" />
+            </label>
+            <label>
+              <span>Lookback hours</span>
+              <input id="lookbackHoursInput" type="number" min="1" max="720" />
+            </label>
+            <button type="submit">Save</button>
+          </form>
+        </div>
+      </section>
+
+      <aside id="detailPanel" class="detail-panel" aria-label="Article detail" hidden>
+        <div class="detail-card">
+          <button id="closeDetail" class="secondary" type="button">Close</button>
+          <div id="detailContent"></div>
+        </div>
+      </aside>
     </main>
 
     <script src="/static/app.js"></script>

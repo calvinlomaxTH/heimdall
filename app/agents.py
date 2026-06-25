@@ -27,6 +27,24 @@ HIGH_SIGNAL_TERMS = {
     "cms",
 }
 
+RISK_CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "regulatory": ("cms", "hhs", "fda", "regulation", "regulatory", "rule", "compliance"),
+    "reimbursement": ("reimbursement", "rate", "payment", "medicare", "medicaid", "rebate"),
+    "litigation": ("lawsuit", "litigation", "settlement", "court", "attorney general"),
+    "cybersecurity": ("cyber", "breach", "ransomware", "hack", "data security", "privacy"),
+    "market access": ("access", "coverage", "network", "formular", "authorization"),
+    "competition": ("competitor", "competition", "market share", "rival"),
+    "M&A": ("acquisition", "merger", "m&a", "deal", "buyout"),
+    "supply chain": ("shortage", "supply", "manufacturing", "distribution"),
+    "clinical trial": ("trial", "phase 1", "phase 2", "phase 3", "clinical"),
+    "FDA approval": ("approval", "fda", "clearance", "pdufa"),
+    "payer pressure": ("payer", "insurer", "prior authorization", "premium", "utilization"),
+    "provider consolidation": ("hospital merger", "health system", "consolidation", "provider"),
+    "financial distress": ("bankruptcy", "margin", "loss", "debt", "downgrade", "cuts"),
+    "policy change": ("policy", "lawmakers", "legislation", "federal", "state"),
+    "operational disruption": ("outage", "strike", "shutdown", "disruption", "recall"),
+}
+
 
 def _tokens(text: str) -> list[str]:
     return re.findall(r"[a-z0-9][a-z0-9-]+", text.lower())
@@ -47,6 +65,24 @@ def _affected_areas(text: str) -> list[str]:
     return ["Market intelligence and growth"]
 
 
+def detect_risk_categories(text: str) -> list[str]:
+    lowered = text.lower()
+    categories = [
+        category
+        for category, keywords in RISK_CATEGORY_KEYWORDS.items()
+        if any(keyword in lowered for keyword in keywords)
+    ]
+    return categories
+
+
+def _confidence(score: int, signal_count: int, area_count: int) -> str:
+    if score >= 4 and signal_count >= 4:
+        return "high"
+    if score >= 3 or signal_count >= 2 or area_count >= 2:
+        return "medium"
+    return "low"
+
+
 @dataclass(frozen=True)
 class ThreatAgent:
     name: str
@@ -60,6 +96,9 @@ class ThreatAgent:
         hits = [keyword for keyword in self.keywords if keyword in lowered]
         high_hits = [term for term in HIGH_SIGNAL_TERMS if term in lowered]
         score = _score_from_hits(self.base_score, len(hits), len(high_hits))
+        affected = _affected_areas(text)
+        categories = detect_risk_categories(text)
+        signals = sorted(set(hits + high_hits))
 
         if hits:
             rationale = f"{self.focus} signals appear in the headline or summary."
@@ -70,8 +109,11 @@ class ThreatAgent:
             agent=self.name,
             score=score,
             rationale=rationale,
-            signals=sorted(set(hits + high_hits)),
-            affected_areas=_affected_areas(text),
+            signals=signals,
+            affected_areas=affected,
+            confidence=_confidence(score, len(signals), len(affected)),
+            risk_categories=categories,
+            recommended_action=_recommended_action(score, affected),
         )
 
 
@@ -192,10 +234,18 @@ def assess_article(article: NewsArticle) -> ThreatAssessment:
     overall_score = min(5, max(1, weighted))
 
     all_areas = []
+    all_categories = []
+    all_signals = []
     for finding in sorted(findings, key=lambda item: item.score, reverse=True):
         for area in finding.affected_areas:
             if area not in all_areas:
                 all_areas.append(area)
+        for category in finding.risk_categories:
+            if category not in all_categories:
+                all_categories.append(category)
+        for signal in finding.signals:
+            if signal not in all_signals:
+                all_signals.append(signal)
 
     top_agent = max(findings, key=lambda item: item.score)
     impact_summary = (
@@ -211,6 +261,9 @@ def assess_article(article: NewsArticle) -> ThreatAssessment:
         overall_score=overall_score,
         severity_label=_severity(overall_score),
         affected_areas=all_areas,
+        risk_categories=all_categories,
+        detected_signals=all_signals,
+        confidence=_confidence(overall_score, len(all_signals), len(all_areas)),
         impact_summary=impact_summary,
         recommended_action=_recommended_action(overall_score, all_areas),
         agent_findings=findings,

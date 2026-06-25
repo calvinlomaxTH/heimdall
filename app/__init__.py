@@ -1,1 +1,1 @@
-"""Heimdall healthcare threat dashboard."""
+"""Heimdall healthcare threat dashboard for Third Horizon."""
