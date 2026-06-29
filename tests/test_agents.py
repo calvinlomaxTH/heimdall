@@ -44,6 +44,19 @@ class ThreatAssessmentTests(unittest.TestCase):
         self.assertLessEqual(assessment.overall_score, 3)
         self.assertIn("Market intelligence and growth", assessment.affected_areas)
 
+    def test_expanded_business_area_keywords(self) -> None:
+        assessment = assess_article(
+            self.article(
+                "FTC scrutiny of PBM network adequacy and hospital-at-home expansion grows",
+                "The story references value based contracts, health equity, data security, and rate negotiation.",
+            )
+        )
+
+        self.assertIn("Policy and regulatory advisory", assessment.affected_areas)
+        self.assertIn("Payer and provider strategy", assessment.affected_areas)
+        self.assertIn("Value-based care and transformation", assessment.affected_areas)
+        self.assertIn("Client reputation and strategic communications", assessment.affected_areas)
+
 
 if __name__ == "__main__":
     unittest.main()
