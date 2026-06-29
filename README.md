@@ -108,3 +108,4 @@ startup migration behavior, and API endpoints.
   `pip install -r requirements.txt`; the requirements use modern compatibility
   floors instead of old native-extension pins.
 - Delete `heimdall.db` only when you intentionally want a fresh local database.
+
