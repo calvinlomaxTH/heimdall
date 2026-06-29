@@ -27,7 +27,13 @@ storage = Storage(settings.database_path, settings.tickers)
 stored_config = storage.get_config(
     {"refresh_minutes": settings.refresh_minutes, "lookback_hours": settings.lookback_hours}
 )
-fetcher = NewsFetcher(settings.tickers, int(stored_config.get("lookback_hours", settings.lookback_hours)))
+fetcher = NewsFetcher(
+    settings.tickers,
+    int(stored_config.get("lookback_hours", settings.lookback_hours)),
+    newsapi_key=settings.newsapi_key,
+    newsapi_provider=str(stored_config.get("newsapi_provider", settings.newsapi_provider)),
+    newsapi_query=str(stored_config.get("newsapi_query", settings.newsapi_query)),
+)
 refresh_service = NewsRefreshService(
     storage,
     fetcher,

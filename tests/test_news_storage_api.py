@@ -6,10 +6,11 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 
+import app.news as news_module
 from app.agents import assess_article, detect_risk_categories
 from app.config import DEFAULT_TICKERS
 from app.models import NewsArticle
-from app.news import normalize_article
+from app.news import NewsFetcher, normalize_article, normalize_newsapi_article
 from app.storage import Storage
 
 
@@ -49,6 +50,58 @@ class NewsNormalizationTests(unittest.TestCase):
         self.assertEqual(normalized.ticker, "UNH")
         self.assertEqual(normalized.publisher, "Yahoo Finance")
         self.assertEqual(normalized.link, "https://finance.yahoo.test/story")
+
+    def test_normalize_newsapi_org_article(self) -> None:
+        fetched_at = datetime.now(tz=UTC)
+        normalized = normalize_newsapi_article(
+            {
+                "source": {"name": "Healthcare Dive"},
+                "title": "UnitedHealth faces Medicare Advantage oversight",
+                "description": "CMS policy scrutiny affects payer strategy.",
+                "url": "https://example.test/newsapi",
+                "publishedAt": "2026-06-25T12:00:00Z",
+            },
+            fetched_at,
+            ("UNH", "CVS"),
+            "newsapi_org",
+        )
+
+        self.assertIsNotNone(normalized)
+        assert normalized is not None
+        self.assertEqual(normalized.ticker, "UNH")
+        self.assertEqual(normalized.publisher, "Healthcare Dive")
+        self.assertEqual(normalized.link, "https://example.test/newsapi")
+
+    def test_cached_newsapi_payload_can_be_reused_without_key(self) -> None:
+        original_loader = news_module._load_yfinance
+        news_module._load_yfinance = lambda: None
+        fetcher = NewsFetcher(
+            ("UNH",),
+            72,
+            newsapi_key="",
+            newsapi_provider="newsapi_org",
+            newsapi_query="healthcare",
+        )
+        try:
+            result = fetcher.fetch(
+                ("UNH",),
+                {
+                    "articles": [
+                        {
+                            "source": {"name": "Cached Source"},
+                            "title": "Optum expands healthcare analytics program",
+                            "description": "Growth in payer analytics.",
+                            "url": "https://example.test/cached",
+                            "publishedAt": datetime.now(tz=UTC).isoformat(),
+                        }
+                    ]
+                },
+            )
+        finally:
+            news_module._load_yfinance = original_loader
+
+        self.assertTrue(any(item.ticker == "UNH" for item in result["articles"]))
+        self.assertIsNone(result.get("newsapi_payload"))
 
 
 class ThreatDetectionTests(unittest.TestCase):
@@ -105,6 +158,15 @@ class StorageTests(unittest.TestCase):
 
         self.assertEqual(runs[0].run_id, run_id)
         self.assertEqual(runs[0].new_articles_inserted, 1)
+
+    def test_newsapi_cache_round_trip(self) -> None:
+        payload = {"articles": [{"title": "Cached healthcare story"}]}
+        self.storage.save_newsapi_cache("newsapi_org", "healthcare", payload)
+        cached = self.storage.get_newsapi_cache("newsapi_org", "healthcare")
+
+        self.assertIsNotNone(cached)
+        assert cached is not None
+        self.assertEqual(cached["payload"], payload)
 
     def test_ticker_configuration(self) -> None:
         created = self.storage.add_ticker("hca", True)

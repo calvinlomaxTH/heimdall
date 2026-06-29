@@ -163,6 +163,18 @@ class Storage:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS newsapi_cache (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider TEXT NOT NULL,
+                    query TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    UNIQUE(provider, query)
+                )
+                """
+            )
 
             indexes = (
                 "CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at)",
@@ -173,6 +185,7 @@ class Storage:
                 "CREATE INDEX IF NOT EXISTS idx_assessments_areas ON assessments(affected_areas)",
                 "CREATE INDEX IF NOT EXISTS idx_assessments_categories ON assessments(risk_categories)",
                 "CREATE INDEX IF NOT EXISTS idx_refresh_runs_started_at ON refresh_runs(started_at)",
+                "CREATE INDEX IF NOT EXISTS idx_newsapi_cache_provider_query ON newsapi_cache(provider, query)",
             )
             for statement in indexes:
                 conn.execute(statement)
@@ -248,7 +261,10 @@ class Storage:
                 """
                 INSERT INTO business_areas (name, description, keywords, enabled, created_at, updated_at)
                 VALUES (?, ?, ?, 1, ?, ?)
-                ON CONFLICT(name) DO NOTHING
+                ON CONFLICT(name) DO UPDATE SET
+                    description = excluded.description,
+                    keywords = excluded.keywords,
+                    updated_at = excluded.updated_at
                 """,
                 (area.name, area.description, _json(list(area.keywords)), timestamp, timestamp),
             )
@@ -750,6 +766,39 @@ class Storage:
                 """
             ).fetchone()
         return _parse_dt(row["completed_at"]) if row else None
+
+    def get_newsapi_cache(self, provider: str, query: str) -> dict[str, Any] | None:
+        with self.session() as conn:
+            row = conn.execute(
+                """
+                SELECT provider, query, fetched_at, payload
+                FROM newsapi_cache
+                WHERE provider = ? AND query = ?
+                LIMIT 1
+                """,
+                (provider, query),
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "provider": row["provider"],
+            "query": row["query"],
+            "fetched_at": row["fetched_at"],
+            "payload": json.loads(row["payload"]),
+        }
+
+    def save_newsapi_cache(self, provider: str, query: str, payload: dict[str, Any]) -> None:
+        with self.session() as conn:
+            conn.execute(
+                """
+                INSERT INTO newsapi_cache (provider, query, fetched_at, payload)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(provider, query) DO UPDATE SET
+                    fetched_at = excluded.fetched_at,
+                    payload = excluded.payload
+                """,
+                (provider, query, _dt(_now()), _json(payload)),
+            )
 
     def _joined_row(self, row: sqlite3.Row) -> dict[str, Any]:
         assessment = json.loads(row["payload"]) if row["payload"] else None

@@ -44,7 +44,24 @@ class NewsRefreshService:
             run_id = await asyncio.to_thread(self.storage.start_refresh_run)
             try:
                 tickers = await asyncio.to_thread(self.storage.active_tickers)
-                fetch_result = await asyncio.to_thread(self.fetcher.fetch, tickers)
+                newsapi_provider, newsapi_query = self.fetcher.newsapi_cache_key()
+                cached_newsapi = await asyncio.to_thread(
+                    self.storage.get_newsapi_cache,
+                    newsapi_provider,
+                    newsapi_query,
+                )
+                fetch_result = await asyncio.to_thread(
+                    self.fetcher.fetch,
+                    tickers,
+                    cached_newsapi["payload"] if cached_newsapi else None,
+                )
+                if fetch_result.get("newsapi_payload") and cached_newsapi is None:
+                    await asyncio.to_thread(
+                        self.storage.save_newsapi_cache,
+                        newsapi_provider,
+                        newsapi_query,
+                        fetch_result["newsapi_payload"],
+                    )
                 articles = fetch_result["articles"]
                 upsert_result = await asyncio.to_thread(self.storage.upsert_articles, articles)
                 assessments = assess_articles(articles)

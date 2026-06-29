@@ -11,6 +11,8 @@ No paid AI API is required.
 ## Features
 
 - Scheduled and manual news refreshes from configurable healthcare tickers.
+- Optional NewsAPI ingestion with a local SQLite cache. Once a NewsAPI payload
+  is cached, future refreshes reuse it instead of spending additional API quota.
 - SQLite-backed article storage, deduplication, threat assessments, notes, and
   refresh history.
 - Deterministic local agents that produce threat score, rationale, confidence,
@@ -46,11 +48,21 @@ DATABASE_PATH=./heimdall.db
 NEWS_REFRESH_MINUTES=60
 NEWS_LOOKBACK_HOURS=72
 HEALTHCARE_TICKERS=UNH,CVS,ELV,HUM,CI,CNC,MOH,HCA,THC,UHS,PFE,JNJ,MRK,ABBV,MDT,ISRG
+NEWSAPI_API_KEY=
+NEWSAPI_PROVIDER=auto
+NEWSAPI_QUERY=healthcare
 ```
 
 Tracked tickers are seeded from `HEALTHCARE_TICKERS` when the database is first
 created. After that, use the dashboard or ticker API to add, disable, or delete
 symbols.
+
+`NEWSAPI_PROVIDER=auto` chooses `newsapi_ai` for UUID-shaped keys and
+`newsapi_org` otherwise. The app stores NewsAPI responses in the `newsapi_cache`
+table by provider and query. If a cached payload exists, scheduled and manual
+refreshes reuse that payload and do not call NewsAPI again. Delete the matching
+row from `newsapi_cache` only when you intentionally want to spend another
+NewsAPI request.
 
 ## API
 
@@ -84,6 +96,7 @@ tables are created when absent:
 - `config`
 - `business_areas`
 - `refresh_runs`
+- `newsapi_cache`
 
 Indexes are created for common dashboard queries, including article date,
 ticker, reviewed status, threat score, affected area, and risk category.
@@ -108,4 +121,3 @@ startup migration behavior, and API endpoints.
   `pip install -r requirements.txt`; the requirements use modern compatibility
   floors instead of old native-extension pins.
 - Delete `heimdall.db` only when you intentionally want a fresh local database.
-

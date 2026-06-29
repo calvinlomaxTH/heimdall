@@ -30,6 +30,9 @@ class Settings:
     refresh_minutes: int
     lookback_hours: int
     tickers: tuple[str, ...]
+    newsapi_key: str
+    newsapi_provider: str
+    newsapi_query: str
 
 
 def _int_env(name: str, default: int) -> int:
@@ -53,4 +56,7 @@ def load_settings() -> Settings:
         refresh_minutes=max(5, _int_env("NEWS_REFRESH_MINUTES", 60)),
         lookback_hours=max(1, _int_env("NEWS_LOOKBACK_HOURS", 72)),
         tickers=tickers or DEFAULT_TICKERS,
+        newsapi_key=os.getenv("NEWSAPI_API_KEY", os.getenv("NEWSAPI_KEY", "")),
+        newsapi_provider=os.getenv("NEWSAPI_PROVIDER", "auto"),
+        newsapi_query=os.getenv("NEWSAPI_QUERY", "healthcare"),
     )
